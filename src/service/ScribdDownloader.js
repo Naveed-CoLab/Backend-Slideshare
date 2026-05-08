@@ -24,9 +24,9 @@ class ScribdDownloader {
     async execute(url) {
         let fn = this.embedsDefault.bind(this)
         if (url.match(scribdRegex.DOCUMENT)) {
-            await fn(`https://www.scribd.com/embeds/${scribdRegex.DOCUMENT.exec(url)[2]}/content`)
+            return await fn(`https://www.scribd.com/embeds/${scribdRegex.DOCUMENT.exec(url)[2]}/content`)
         } else if (url.match(scribdRegex.EMBED)) {
-            await fn(url)
+            return await fn(url)
         } else {
             throw new Error(`Unsupported URL: ${url}`)
         }
@@ -44,6 +44,9 @@ class ScribdDownloader {
         const page = await puppeteerSg.getPage(url)
         try {
             const {title, pages} = await this.processPage(page);
+            if (pages.length === 0) {
+                throw new Error('No document pages found. The page may be blocked or unavailable.')
+            }
             const identifier = `${sanitize(filename === "title" ? title : id)}`
             const pdfPath = `${output}/${identifier}.pdf`
             if (pages.every(p => p.width === pages[0].width && p.height === pages[0].height)) {
@@ -59,6 +62,13 @@ class ScribdDownloader {
                 directoryIo.remove(tempDir)
             }
             console.log(`Generated: ${pdfPath}`);
+            return {
+                pdfPath,
+                filename: `${identifier}.pdf`,
+                title,
+                id,
+                pages: pages.length,
+            };
         } catch (err) {
             throw err;
         } finally {

@@ -15,11 +15,11 @@ class App {
 
     async execute(url) {
         if (url.match(scribdRegex.DOMAIN)) {
-            await scribdDownloader.execute(url)
+            return await scribdDownloader.execute(url)
         } else if (url.match(slideshareRegex.DOMAIN)) {
-            await slideshareDownloader.execute(url)
+            return await slideshareDownloader.execute(url)
         } else if (url.match(everandRegex.DOMAIN)) {
-            await everandDownloader.execute(url)
+            return await everandDownloader.execute(url)
         } else {
             throw new Error(`Unsupported URL: ${url}`)
         }

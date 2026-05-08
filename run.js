@@ -1,4 +1,5 @@
 import { app } from './src/App.js'
+import { startServer } from './src/server.js'
 import readline from 'readline'
 
 function askUrlFromPrompt() {
@@ -17,18 +18,22 @@ function askUrlFromPrompt() {
 
 let url = process.argv[2]
 
-if (!url) {
-    url = await askUrlFromPrompt()
-}
+if (url === '--server' || process.env.PORT || !process.stdin.isTTY) {
+    startServer()
+} else {
+    if (!url) {
+        url = await askUrlFromPrompt()
+    }
 
-if (!url) {
-    console.error('No URL provided.')
-    process.exit(1)
-}
+    if (!url) {
+        console.error('No URL provided.')
+        process.exit(1)
+    }
 
-try {
-    await app.execute(url)
-} catch (error) {
-    console.error(error?.message ?? error)
-    process.exit(1)
+    try {
+        await app.execute(url)
+    } catch (error) {
+        console.error(error?.message ?? error)
+        process.exit(1)
+    }
 }
