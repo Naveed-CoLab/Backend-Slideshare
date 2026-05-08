@@ -18,7 +18,9 @@ function askUrlFromPrompt() {
 
 let url = process.argv[2]
 
-if (url === '--server' || process.env.PORT || !process.stdin.isTTY) {
+const shouldRunServer = url === '--server' || (!url && (process.env.PORT || !process.stdin.isTTY))
+
+if (shouldRunServer) {
     startServer()
 } else {
     if (!url) {

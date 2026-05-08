@@ -43,7 +43,10 @@ class ScribdDownloader {
         const id = m[1]
         const page = await puppeteerSg.getPage(url)
         try {
-            const {title, pages} = await this.processPage(page);
+            const {title, pages, blocked, reason} = await this.processPage(page);
+            if (blocked) {
+                throw new Error(reason || 'Document rendering appears blocked (possible captcha/challenge).')
+            }
             if (pages.length === 0) {
                 throw new Error('No document pages found. The page may be blocked or unavailable.')
             }
@@ -101,8 +104,31 @@ class ScribdDownloader {
                     height: parseInt(style.height)
                 })
             });
-            document.body.innerHTML = document.querySelector("div.outer_page_container").innerHTML
-            return { title: title, pages: pages };
+            const outer = document.querySelector("div.outer_page_container");
+            const pageText = (document.body?.innerText || '').toLowerCase();
+            const challengeSignals = [
+                'captcha',
+                'verify you are human',
+                'are you human',
+                'access denied',
+                'challenge',
+                'cloudflare',
+            ];
+
+            if (!outer) {
+                const isLikelyBlocked = challengeSignals.some((signal) => pageText.includes(signal));
+                return {
+                    title,
+                    pages,
+                    blocked: true,
+                    reason: isLikelyBlocked
+                        ? 'Bot challenge or captcha detected on Scribd page.'
+                        : 'Scribd page layout not available (outer_page_container missing).',
+                };
+            }
+
+            document.body.innerHTML = outer.innerHTML
+            return { title, pages, blocked: false, reason: null };
         }, rendertime);
     }
 
