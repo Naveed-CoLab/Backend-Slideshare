@@ -1,7 +1,34 @@
 import { app } from './src/App.js'
+import readline from 'readline'
 
-if (process.argv.length === 3) {
-    await app.execute(process.argv[2])
-} else {
-    console.error(`Usage: npm start <url>`)
+function askUrlFromPrompt() {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    })
+
+    return new Promise((resolve) => {
+        rl.question('Enter document URL: ', (answer) => {
+            rl.close()
+            resolve(answer.trim())
+        })
+    })
+}
+
+let url = process.argv[2]
+
+if (!url) {
+    url = await askUrlFromPrompt()
+}
+
+if (!url) {
+    console.error('No URL provided.')
+    process.exit(1)
+}
+
+try {
+    await app.execute(url)
+} catch (error) {
+    console.error(error?.message ?? error)
+    process.exit(1)
 }
