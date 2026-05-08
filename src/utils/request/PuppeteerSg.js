@@ -1,6 +1,20 @@
 import path from 'path'
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer-extra'
+import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import { directoryIo } from "../io/DirectoryIo.js";
+
+puppeteer.use(StealthPlugin())
+
+// Realistic desktop user agents
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+]
+
+const randomBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 class PuppeteerSg {
   static buffer = 1000;
@@ -16,35 +30,79 @@ class PuppeteerSg {
   }
 
   /**
-   * Launch a browser
+   * Launch a browser with stealth settings to appear human
    */
   async launch() {
-    const isCI = process.env.CI === 'true'; // Detect if running in CI
-    const args = [];
+    const isCI = process.env.CI === 'true';
+    const args = [
+      '--disable-blink-features=AutomationControlled',
+      '--disable-infobars',
+      '--window-size=1366,768',
+      '--start-maximized',
+    ];
     if (isCI) {
       args.push('--no-sandbox', '--disable-setuid-sandbox');
     }
     this.browser = await puppeteer.launch({
       headless: "new",
-      defaultViewport: null,
+      defaultViewport: { width: 1366, height: 768 },
       args,
       timeout: 0,
     });
   }
 
   /**
-   * New a page
+   * Simulate human-like mouse movement across the page
+   */
+  async humanMouseMove(page) {
+    const steps = randomBetween(3, 7);
+    for (let i = 0; i < steps; i++) {
+      await page.mouse.move(
+        randomBetween(100, 1200),
+        randomBetween(100, 600),
+        { steps: randomBetween(5, 15) }
+      );
+      await sleep(randomBetween(50, 200));
+    }
+  }
+
+  /**
+   * New a page with human-like behaviour
    */
   async getPage(url) {
     if (!this.browser) {
       await this.launch()
     }
     let page = await this.browser.newPage()
+
+    // Set a random realistic user agent
+    const ua = USER_AGENTS[randomBetween(0, USER_AGENTS.length - 1)]
+    await page.setUserAgent(ua)
+
+    // Set realistic HTTP headers
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"',
+    })
+
     await page.goto(url, {
       waitUntil: "load",
     })
+
+    // Human-like pause after page load
+    await sleep(randomBetween(800, 1800))
+
+    // Simulate human mouse movement
+    await this.humanMouseMove(page)
+
+    // Another small pause before interacting
+    await sleep(randomBetween(300, 700))
+
     await this.injectHelperFunctions(page)
-    await new Promise(resolve => setTimeout(resolve, this.buffer))
+    await sleep(this.buffer)
     return page
   }
 
