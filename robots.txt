@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /result.php
+Disallow: /img.php
+Disallow: /pdf.php
+Disallow: /download.php
+Disallow: /function.php
+Disallow: /turnstile.php
+Disallow: /header.php
+Disallow: /footer.php
+Disallow: /page.php
+Disallow: /tcpdf/
+
+Sitemap: https://slidesdownloader.pro/sitemap.xml
